@@ -7,6 +7,7 @@ import gym.spaces
 
 from typing import Callable
 from typing import Dict
+from typing import Tuple
 
 from gym import wrappers
 
@@ -20,7 +21,7 @@ np.random.seed(1)
 
 def learn(env,
           q_func,
-          initialize_model: Callable[[int], Dict],
+          initialize_model: Callable[[Tuple, int], Dict],
           batch_size=32,
           exploration=LinearSchedule(1000000, 0.1),
           frame_history_len: int=4,
@@ -141,7 +142,7 @@ def learn(env,
     for t in itertools.count():
 
         # 1. Check stopping criterion
-        if stopping_criterion is not None and stopping_criterion(t):
+        if stopping_criterion is not None and stopping_criterion(env, t):
             break
 
         # 2. Step the env and store the transition
@@ -172,12 +173,19 @@ def learn(env,
 
             if not model_initialized:
                 model_initialized = True
-                model_curr = initialize_model(num_actions)
+                model_curr = initialize_model(input_shape, num_actions)
                 model_target = model_curr
 
             learning_rate = lr_schedule.value(t)
             model_curr = train_func(
-                obs_t, act_t, rew_t, obs_tp1, done_mask, learning_rate)
+                obs_t=obs_t,
+                act_t=act_t,
+                rew_t=rew_t,
+                obs_tp1=obs_tp1,
+                done_mask=done_mask,
+                learning_rate=learning_rate,
+                model_curr=model_curr,
+                model_target=model_target)
 
             if t % target_update_freq == 0:
                 update_target_func(model_curr, model_target)

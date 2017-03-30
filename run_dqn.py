@@ -26,16 +26,21 @@ from skimage.transform import pyramid_reduce
 import os.path
 import random
 
+from typing import Dict
+from typing import Tuple
 
-def initialize_model(num_actions: int):
+
+def initialize_model(input_shape: Tuple, num_actions: int) -> Dict:
     """Initialize the model"""
-    return {'W0': adnumber(np.random.random((num_actions, 1)))}
+    h, w, d = input_shape
+    return {'W0': adnumber(np.random.random((h * w * d, num_actions)))}
 
 
 def evaluate(X: np.ndarray, model) -> np.ndarray:
     """Evaluate the neural network."""
-    l0, W0 = X, model['W0']
-    l1 = np.array([sigmoid(l0.dot(w)) for w in W0])
+    W0 = model['W0']
+    l0 = X.reshape((X.shape[0], W0.shape[0]))
+    l1 = np.array([sigmoid(l0.dot(w)) for w in W0.T])
     return l1
 
 
