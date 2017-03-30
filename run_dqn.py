@@ -1,7 +1,7 @@
 """
 
 Usage:
-    run_dqn_atari.py [options]
+    run_dqn.py [options]
 
 Options:
     --batch-size=<size>     Batch size [default: 32]
@@ -19,6 +19,7 @@ import docopt
 import gym
 import numpy as np
 
+from ad import adnumber
 from gym import wrappers
 from skimage.transform import pyramid_reduce
 
@@ -28,13 +29,13 @@ import random
 
 def initialize_model(num_actions: int):
     """Initialize the model"""
-    return {'w0': np.random.random((num_actions, 1))}
+    return {'W0': adnumber(np.random.random((num_actions, 1)))}
 
 
 def evaluate(X: np.ndarray, model) -> np.ndarray:
     """Evaluate the neural network."""
-    l0, w0 = X, model['w0']
-    l1 = sigmoid(l0.dot(w0))
+    l0, W0 = X, model['W0']
+    l1 = np.array([sigmoid(l0.dot(w)) for w in W0])
     return l1
 
 
@@ -46,19 +47,19 @@ def featurize(X: np.ndarray, target=(84, 84, 4)) -> np.ndarray:
     return pyramid_reduce(X, scale=X.shape[0]/target[0])
 
 
-def sigmoid(x, derivative=False):
+def sigmoid(x):
     """Sigmoid activation function."""
-    if derivative:
-        return x*(1-x)
     return 1/(1+np.exp(-x))
 
 
 def set_global_seeds(i):
+    """Set global random seeds."""
     np.random.seed(i)
     random.seed(i)
 
 
 def get_env(env_id, seed):
+    """Get gym environment, per id and seed."""
     env = gym.make(env_id)
 
     set_global_seeds(seed)
@@ -122,12 +123,7 @@ def main():
     seed = 0  # Use a seed of zero (you may want to randomize the seed!)
     env = get_env(arguments['--envid'], seed)
 
-    model = arguments['--model'].lower()
-    num_filters = int(arguments['--num-filters'])
     batch_size = int(arguments['--batch-size'])
-    print(' * [INFO] %s model (Filters: %d, Batch Size: %d)' % (
-        model, num_filters, batch_size))
-
     simplified_learn(
         env,
         num_timesteps=int(arguments['--timesteps']),

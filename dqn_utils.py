@@ -1,12 +1,20 @@
 """This file includes a collection of utility functions that are useful for
 implementing DQN.
 
-Code taken from github.com/berkeleydeeprlcourse/homework."""
+Portions taken from github.com/berkeleydeeprlcourse/homework."""
 
 
 import gym
 import numpy as np
 import random
+
+
+from typing import List
+
+
+def one_hot(indices: List[int], depth: int) -> np.ndarray:
+    """One hot the provided vector."""
+    return np.eye(depth)[indices]
 
 
 def sample_n_unique(sampling_f, n):

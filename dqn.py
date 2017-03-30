@@ -12,6 +12,7 @@ from gym import wrappers
 
 from dqn_utils import get_wrapper_by_name
 from dqn_utils import LinearSchedule
+from dqn_utils import one_hot
 from dqn_utils import ReplayBuffer
 
 np.random.seed(1)
@@ -99,16 +100,27 @@ def learn(env,
         model_curr.update(model_target)
 
     def train_func(
-            obs_t, act_t, rew_t, obs_tp1, done_mask, learning_rate, model_curr,
-            model_target):
+            obs_t: np.ndarray,
+            act_t: np.ndarray,
+            rew_t: np.ndarray,
+            obs_tp1: np.ndarray,
+            done_mask: np.ndarray,
+            learning_rate: float,
+            model_curr: Dict,
+            model_target: Dict) -> Dict:
+        """Train function, minimizing loss per q-learning objective."""
         curr_q = q_func(obs_t, model_curr)
         target_q = q_func(obs_tp1, model_target)
-        actions = one_hot(act_t, num_actions, 1.0, 0.0)
+        actions = one_hot(act_t, num_actions)
         q_target_max = np.max(target_q, axis=1)
         q_target_val = rew_t + gamma * (1. - done_mask) * q_target_max
         q_candidate_val = np.sum(curr_q * actions, axis=1)
         total_error = sum((q_target_val - q_candidate_val)**2)
-        # TODO(Alvin): Take gradients and update model - apply autodifferentiator
+
+        for k, W in model_curr.items():
+            for i, row in enumerate(W):
+                for j, entry in enumerate(row):
+                    W[i][j] += learning_rate * total_error.d(entry)
         return model_curr
 
 

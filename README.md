@@ -1,6 +1,6 @@
-# Deep Q-learning Neural Network Simplified
+# Deep Q-learning Neural Network (Simplified)
 
-This repository provides a faster, Tensorflow-less, simplified model.
+This repository provides a faster, Tensorflow-less, simplified model. See the [Tensorflow implementation](http://github.com/alvinwan/deep-q-learning).
 
 # Install
 
@@ -28,14 +28,14 @@ pip install -r requirements.txt
 # Run
 
 ```
-python run_dqn_atari.py
+python run_dqn.py
 ```
 
 Here are full usage instructions:
 
 ```
 Usage:
-    run_dqn_atari.py [options]
+    run_dqn.py [options]
 
 Options:
     --batch-size=<size>     Batch size [default: 32]
