@@ -19,8 +19,8 @@ import docopt
 import gym
 import numpy as np
 
-from ad import adnumber
 from gym import wrappers
+from numba import jit
 from skimage.transform import pyramid_reduce
 
 import os.path
@@ -33,14 +33,15 @@ from typing import Tuple
 def initialize_model(input_shape: Tuple, num_actions: int) -> Dict:
     """Initialize the model"""
     h, w, d = input_shape
-    return {'W0': adnumber(np.random.random((h * w * d, num_actions)))}
+    return {'W0': np.random.random((h * w * d, num_actions))}
 
 
-def evaluate(X: np.ndarray, model) -> np.ndarray:
+@jit
+def evaluate(X: np.ndarray, model: Dict) -> np.ndarray:
     """Evaluate the neural network."""
     W0 = model['W0']
     l0 = X.reshape((X.shape[0], W0.shape[0]))
-    l1 = np.array([sigmoid(l0.dot(w)) for w in W0.T])
+    l1 = np.maximum(0, l0.dot(W0))
     return l1
 
 
@@ -50,11 +51,6 @@ def featurize(X: np.ndarray, target=(84, 84, 4)) -> np.ndarray:
     Simple image compression, for now.
     """
     return pyramid_reduce(X, scale=X.shape[0]/target[0])
-
-
-def sigmoid(x):
-    """Sigmoid activation function."""
-    return 1/(1+np.exp(-x))
 
 
 def set_global_seeds(i):

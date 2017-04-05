@@ -2,12 +2,12 @@ import itertools
 import sys
 import time
 
-import numpy as np
-import gym.spaces
-
 from typing import Callable
 from typing import Dict
 from typing import Tuple
+
+import numpy as np
+import gym.spaces
 
 from gym import wrappers
 
@@ -109,19 +109,29 @@ def learn(env,
             learning_rate: float,
             model_curr: Dict,
             model_target: Dict) -> Dict:
-        """Train function, minimizing loss per q-learning objective."""
+        """Train function, minimizing loss per q-learning objective.
+
+        This assumes the q_function is a one-layer fc neural network, where the
+        loss function is squared error.
+        """
+
         curr_q = q_func(obs_t, model_curr)
         target_q = q_func(obs_tp1, model_target)
         actions = one_hot(act_t, num_actions)
         q_target_max = np.max(target_q, axis=1)
         q_target_val = rew_t + gamma * (1. - done_mask) * q_target_max
         q_candidate_val = np.sum(curr_q * actions, axis=1)
-        total_error = sum((q_target_val - q_candidate_val)**2)
+        _ = sum((q_target_val - q_candidate_val) ** 2)
 
-        for k, W in model_curr.items():
-            for i, row in enumerate(W):
-                for j, entry in enumerate(row):
-                    W[i][j] += learning_rate * total_error.d(entry)
+        d = obs_t.shape[1] * obs_t.shape[2] * obs_t.shape[3]
+        grad_loss = 2*(q_target_val - q_candidate_val).reshape((-1, 1))
+        obs_t = obs_t.reshape([-1, d])
+        gradient = np.zeros(model_curr['W0'].shape)
+        for grad_loss, x, action in zip(grad_loss, obs_t, actions):
+            x = x.reshape((x.shape[0], 1))
+            action = action.reshape((1, action.shape[0]))
+            gradient += np.asscalar(grad_loss) * x.dot(action)
+        model_curr['W0'] += learning_rate * gradient
         return model_curr
 
 
@@ -138,6 +148,7 @@ def learn(env,
     learning_rate = exploration.value(0)
     model_curr = {}
     model_target = {}
+    start_time = None
 
     for t in itertools.count():
 
@@ -185,7 +196,8 @@ def learn(env,
                 done_mask=done_mask,
                 learning_rate=learning_rate,
                 model_curr=model_curr,
-                model_target=model_target)
+                model_target=model_target
+            )
 
             if t % target_update_freq == 0:
                 update_target_func(model_curr, model_target)
@@ -200,7 +212,9 @@ def learn(env,
             best_mean_episode_reward = max(best_mean_episode_reward,
                                            mean_episode_reward)
         if t % LOG_EVERY_N_STEPS == 0 and model_initialized:
-            print("Time %s s" % int(time.time() - start_time))
+            if start_time is not None:
+                print("Time %s s" % int(time.time() - start_time))
+            start_time = time.time()
             print("Timestep %d" % t)
             print("mean reward (100 episodes) %f" % mean_episode_reward)
             print("best mean reward %f" % best_mean_episode_reward)
