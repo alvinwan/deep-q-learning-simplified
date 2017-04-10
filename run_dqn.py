@@ -9,6 +9,7 @@ Options:
     --timesteps=<steps>         Number of timesteps to run [default: 40000000]
     --learning-starts=<starts>  Timestep to start learning [default: 200000]
     --restore-tf=<restore>      Restore from a Tensorflow checkpoint file.
+    --checkpoint-dir=<dir>      Directory containing checkpoints.
 """
 
 import dqn
@@ -80,7 +81,8 @@ def get_env(env_id, seed):
 def simplified_learn(env,
                 num_timesteps,
                 batch_size=32,
-                learning_starts=200000):
+                learning_starts=200000,
+                checkpoint_dir='./checkpoints'):
     # This is just a rough estimate
     num_iterations = float(num_timesteps) / 4.0
     learning_starts = int(learning_starts) / 4.0
@@ -102,7 +104,7 @@ def simplified_learn(env,
         [
             (0, 1.0),
             (1e6, 0.1),
-            (num_iterations / 2 if num_iterations > 1e6 else 1e7, 0.01),
+            (num_iterations / 2 if num_iterations > 1e6 else 1e9, 0.01),
         ], outside_value=0.01
     )
 
@@ -118,7 +120,9 @@ def simplified_learn(env,
         learning_starts=learning_starts,
         learning_freq=4,
         frame_history_len=4,
-        target_update_freq=10000
+        target_update_freq=10000,
+        grad_norm_clipping=10,
+        checkpoint_dir=checkpoint_dir
     )
     env.close()
     return model
@@ -136,7 +140,8 @@ def main():
         env,
         num_timesteps=int(arguments['--timesteps']),
         batch_size=batch_size,
-        learning_starts=arguments['--learning-starts'])
+        learning_starts=arguments['--learning-starts'],
+        checkpoint_dir=arguments['--checkpoint-dir'])
 
 
 if __name__ == '__main__':

@@ -8,6 +8,8 @@ from typing import Tuple
 
 import numpy as np
 import gym.spaces
+import scipy.io
+import os.path
 
 from gym import wrappers
 
@@ -15,6 +17,7 @@ from dqn_utils import get_wrapper_by_name
 from dqn_utils import LinearSchedule
 from dqn_utils import one_hot
 from dqn_utils import ReplayBuffer
+from dqn_utils import clip_by_norm
 
 np.random.seed(1)
 
@@ -32,7 +35,9 @@ def learn(env,
           replay_buffer_size: int=1000000,
           start_time=time.time(),
           stopping_criterion: Callable[[wrappers.Monitor, int], bool]=None,
-          target_update_freq=10000):
+          target_update_freq=10000,
+          checkpoint_dir='./checkpoints',
+          grad_norm_clipping=10):
     """Train a two-layer neural network.
 
     You can specify your own convnet using q_func.
@@ -131,7 +136,8 @@ def learn(env,
             x = x.reshape((x.shape[0], 1))
             action = action.reshape((1, action.shape[0]))
             gradient += np.asscalar(grad_loss) * x.dot(action)
-        model_curr['W0'] += learning_rate * gradient
+        model_curr['W0'] += clip_by_norm(
+            learning_rate * gradient, grad_norm_clipping)
         return model_curr
 
 
@@ -149,6 +155,7 @@ def learn(env,
     model_curr = {}
     model_target = {}
     run_id = str(start_time)[-5:].replace('.', '')
+    os.makedirs(os.path.join(checkpoint_dir, run_id), exist_ok=True)
 
     for t in itertools.count():
 
@@ -222,4 +229,10 @@ def learn(env,
             print("exploration %f" % exploration.value(t))
             print("learning_rate %f" % learning_rate)
             sys.stdout.flush()
+        scipy.io.savemat(
+            os.path.join(checkpoint_dir, run_id, 'step-%d.mat' % t),
+            model_curr)
+    scipy.io.savemat(
+        os.path.join(checkpoint_dir, run_id, 'step-final.mat'),
+        model_curr)
     return model_curr
