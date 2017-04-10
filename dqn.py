@@ -148,7 +148,7 @@ def learn(env,
     learning_rate = exploration.value(0)
     model_curr = {}
     model_target = {}
-    start_time = None
+    run_id = str(start_time)[-5:].replace('.', '')
 
     for t in itertools.count():
 
@@ -222,3 +222,4 @@ def learn(env,
             print("exploration %f" % exploration.value(t))
             print("learning_rate %f" % learning_rate)
             sys.stdout.flush()
+    return model_curr

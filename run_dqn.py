@@ -4,9 +4,11 @@ Usage:
     run_dqn.py [options]
 
 Options:
-    --batch-size=<size>     Batch size [default: 32]
-    --envid=<envid>         Environment id [default: SpaceInvadersNoFrameskip-v3]
-    --timesteps=<steps>     Number of timesteps to run [default: 40000000]
+    --batch-size=<size>         Batch size [default: 32]
+    --envid=<envid>             Environment id [default: SpaceInvadersNoFrameskip-v3]
+    --timesteps=<steps>         Number of timesteps to run [default: 40000000]
+    --learning-starts=<starts>  Timestep to start learning [default: 200000]
+    --restore-tf=<restore>      Restore from a Tensorflow checkpoint file.
 """
 
 import dqn
@@ -31,9 +33,11 @@ from typing import Tuple
 
 
 def initialize_model(input_shape: Tuple, num_actions: int) -> Dict:
-    """Initialize the model"""
+    """Initialize the model using gaussian Xavier initialization"""
     h, w, d = input_shape
-    return {'W0': np.random.random((h * w * d, num_actions))}
+    n = h * w * d
+    # return {'W0': np.random.normal(0, (1/n)**(1/2), size=(n, num_actions))}
+    return {'W0': np.random.random((n, num_actions))}
 
 
 @jit
@@ -75,9 +79,11 @@ def get_env(env_id, seed):
 
 def simplified_learn(env,
                 num_timesteps,
-                batch_size=32):
+                batch_size=32,
+                learning_starts=200000):
     # This is just a rough estimate
     num_iterations = float(num_timesteps) / 4.0
+    learning_starts = int(learning_starts) / 4.0
 
     lr_multiplier = 1.0
     lr_schedule = PiecewiseSchedule([
@@ -96,11 +102,11 @@ def simplified_learn(env,
         [
             (0, 1.0),
             (1e6, 0.1),
-            (num_iterations / 2, 0.01),
+            (num_iterations / 2 if num_iterations > 1e6 else 1e7, 0.01),
         ], outside_value=0.01
     )
 
-    dqn.learn(
+    model = dqn.learn(
         env,
         initialize_model=initialize_model,
         q_func=evaluate,
@@ -109,12 +115,13 @@ def simplified_learn(env,
         stopping_criterion=stopping_criterion,
         replay_buffer_size=1000000,
         batch_size=batch_size,
-        learning_starts=50000,
+        learning_starts=learning_starts,
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000
     )
     env.close()
+    return model
 
 
 def main():
@@ -128,7 +135,8 @@ def main():
     simplified_learn(
         env,
         num_timesteps=int(arguments['--timesteps']),
-        batch_size=batch_size)
+        batch_size=batch_size,
+        learning_starts=arguments['--learning-starts'])
 
 
 if __name__ == '__main__':

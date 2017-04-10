@@ -4,3 +4,4 @@ gym[all]==0.8.0
 opencv-python==3.2.0.6
 scikit-image==0.13.0
 numba==0.31.0
+pytest==3.0.7
