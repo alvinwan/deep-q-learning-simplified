@@ -129,15 +129,14 @@ def learn(env,
         _ = sum((q_target_val - q_candidate_val) ** 2)
 
         d = obs_t.shape[1] * obs_t.shape[2] * obs_t.shape[3]
-        grad_loss = 2*(q_target_val - q_candidate_val).reshape((-1, 1))
-        obs_t = obs_t.reshape([-1, d])
-        gradient = np.zeros(model_curr['W0'].shape)
-        for grad_loss, x, action in zip(grad_loss, obs_t, actions):
-            x = x.reshape((x.shape[0], 1))
-            action = action.reshape((1, action.shape[0]))
-            gradient += np.asscalar(grad_loss) * x.dot(action)
-        model_curr['W0'] += clip_by_norm(
-            learning_rate * gradient, grad_norm_clipping)
+        obs_t = obs_t.reshape((-1, d))
+
+        loss_gradient = -2 * (q_target_val - q_candidate_val)
+        x_loss_gradient = obs_t.T * loss_gradient
+        gradient = x_loss_gradient.dot(actions)
+        clipped_gradient = clip_by_norm(gradient, grad_norm_clipping)
+        model_curr['W0'] += learning_rate * clipped_gradient
+
         return model_curr
 
 

@@ -16,9 +16,12 @@ def one_hot(indices: List[int], depth: int) -> np.ndarray:
     return np.eye(depth)[indices]
 
 
-def clip_by_norm(t: np.ndarray, norm: float) -> np.ndarray:
+def clip_by_norm(t: np.ndarray, clip_val: float) -> np.ndarray:
     """Clips L2 norm for each row in a given matrix."""
-    return np.vstack([row * norm / np.linalg.norm(row, ord=2) for row in t])
+    norm = np.linalg.norm(t)
+    if norm <= clip_val:
+        return t
+    return (t / norm) * clip_val
 
 
 def sample_n_unique(sampling_f, n):

@@ -8,8 +8,8 @@ Options:
     --envid=<envid>             Environment id [default: SpaceInvadersNoFrameskip-v3]
     --timesteps=<steps>         Number of timesteps to run [default: 40000000]
     --learning-starts=<starts>  Timestep to start learning [default: 200000]
-    --restore-tf=<restore>      Restore from a Tensorflow checkpoint file.
-    --checkpoint-dir=<dir>      Directory containing checkpoints.
+    --checkpoint-dir=<dir>      Directory containing checkpoints. [default: ./checkpoints]
+    --restore=<restore>         File to restore model from (.ckpt for Tensorflow file, .npy for numpy)
 """
 
 import dqn
@@ -37,8 +37,17 @@ def initialize_model(input_shape: Tuple, num_actions: int) -> Dict:
     """Initialize the model using gaussian Xavier initialization"""
     h, w, d = input_shape
     n = h * w * d
-    # return {'W0': np.random.normal(0, (1/n)**(1/2), size=(n, num_actions))}
-    return {'W0': np.random.random((n, num_actions))}
+    return {'W0': np.random.normal(0, (1/n)**(1/2), size=(n, num_actions))}
+
+
+def load_tf_model(
+        restore: str,
+        weights: str='q_func/action_value/fully_connected/weights') -> Dict:
+    """Restore the model provided by a Tensorflow file."""
+    import tensorflow as tf
+
+    reader = tf.train.NewCheckpointReader(restore)
+    return {'W0': reader.get_tensor(weights)}
 
 
 @jit
@@ -82,7 +91,8 @@ def simplified_learn(env,
                 num_timesteps,
                 batch_size=32,
                 learning_starts=200000,
-                checkpoint_dir='./checkpoints'):
+                checkpoint_dir='./checkpoints',
+                restore=None):
     # This is just a rough estimate
     num_iterations = float(num_timesteps) / 4.0
     learning_starts = int(learning_starts) / 4.0
@@ -108,9 +118,14 @@ def simplified_learn(env,
         ], outside_value=0.01
     )
 
+    if restore is not None:
+        initializer = lambda *args, **kwargs: load_tf_model(restore)
+    else:
+        initializer = initialize_model
+
     model = dqn.learn(
         env,
-        initialize_model=initialize_model,
+        initialize_model=initializer,
         q_func=evaluate,
         lr_schedule=lr_schedule,
         exploration=exploration_schedule,
@@ -141,7 +156,8 @@ def main():
         num_timesteps=int(arguments['--timesteps']),
         batch_size=batch_size,
         learning_starts=arguments['--learning-starts'],
-        checkpoint_dir=arguments['--checkpoint-dir'])
+        checkpoint_dir=arguments['--checkpoint-dir'],
+        restore=arguments['--restore'])
 
 
 if __name__ == '__main__':
