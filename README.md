@@ -1,6 +1,6 @@
 # Deep Q-learning Neural Network (Simplified)
 
-This repository provides a faster, Tensorflow-less, simplified model. See the [Tensorflow implementation](http://github.com/alvinwan/deep-q-learning).
+This repository provides a CPU, Tensorflow-less, simplified model. See the [Tensorflow implementation](http://github.com/alvinwan/deep-q-learning).
 
 # Install
 
